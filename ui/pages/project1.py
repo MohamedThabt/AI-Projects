@@ -1,43 +1,26 @@
-import time
+import asyncio
+from collections.abc import AsyncGenerator
 
 import gradio as gr
-import httpx
 
-_API_BASE = "http://localhost:8000/api/project1"
-_POLL_INTERVAL = 3  # seconds
+from app.services.brochure_generator import run_pipeline_stream
+
+# Stage-progress prefixes — we accumulate them separately so the final
+# brochure markdown isn't polluted with status emoji lines.
+_STAGE_PREFIXES = ("🔍", "🔗", "📄", "🧹", "✨")
 
 
-def _generate_brochure(url: str) -> str:
-    """Call the backend to generate a brochure, poll until done."""
+async def _generate_brochure(url: str) -> AsyncGenerator[str, None]:
+    """Async generator that streams progress + brochure tokens to Gradio."""
     if not url or not url.strip():
-        return "⚠️ Please enter a valid URL."
+        yield "⚠️ Please enter a valid URL."
+        return
 
-    # Start the task
-    try:
-        resp = httpx.post(f"{_API_BASE}/generate", json={"url": url.strip()}, timeout=30)
-        resp.raise_for_status()
-        data = resp.json()
-        task_id = data["task_id"]
-    except Exception as exc:
-        return f"❌ Failed to start generation: {exc}"
+    accumulated = ""  # running text shown in the Markdown component
 
-    # Poll for completion
-    while True:
-        time.sleep(_POLL_INTERVAL)
-        try:
-            status_resp = httpx.get(f"{_API_BASE}/status/{task_id}", timeout=15)
-            status_resp.raise_for_status()
-            status_data = status_resp.json()
-        except Exception as exc:
-            return f"❌ Error polling status: {exc}"
-
-        status = status_data.get("status", "unknown")
-
-        if status == "completed":
-            return status_data.get("result", "No content returned.")
-        if status == "failed":
-            return f"❌ Generation failed: {status_data.get('error', 'Unknown error')}"
-        # Still running — keep polling
+    async for chunk in run_pipeline_stream(url.strip()):
+        accumulated += chunk
+        yield accumulated
 
 
 def create_project1_page() -> tuple[gr.Column, gr.Button]:
@@ -61,7 +44,7 @@ def create_project1_page() -> tuple[gr.Column, gr.Button]:
 
         back_btn = gr.Button("← Back to Home", variant="secondary")
 
-        # Wire events
+        # Wire events — Gradio natively streams async generators
         generate_btn.click(
             fn=_generate_brochure,
             inputs=[url_input],

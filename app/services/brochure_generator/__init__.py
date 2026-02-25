@@ -1,3 +1,3 @@
-from app.services.brochure_generator.task_manager import start_generation, get_task_status
+from app.services.brochure_generator.task_manager import run_pipeline_stream
 
-__all__ = ["start_generation", "get_task_status"]
+__all__ = ["run_pipeline_stream"]

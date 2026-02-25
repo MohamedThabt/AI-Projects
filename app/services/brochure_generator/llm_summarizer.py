@@ -2,9 +2,13 @@
 
 Takes cleaned website text, chunks it if needed, and uses an LLM to produce
 a professional brochure in Markdown format.
+
+Supports both blocking (``generate_brochure``) and streaming
+(``generate_brochure_stream``) output.
 """
 
 import logging
+from collections.abc import Generator
 
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_text_splitters import RecursiveCharacterTextSplitter
@@ -67,24 +71,28 @@ def _get_llm() -> ChatGoogleGenerativeAI:
 def _extract_text(response) -> str:
     """Extract text from LLM response, handling both string and list formats."""
     content = response.content
-    
+
     # If content is a string, return it directly
     if isinstance(content, str):
         return content
-    
+
     # If content is a list (Gemini 3 format), extract text from parts
     if isinstance(content, list):
         text_parts = []
         for part in content:
-            if isinstance(part, dict) and 'text' in part:
-                text_parts.append(part['text'])
+            if isinstance(part, dict) and "text" in part:
+                text_parts.append(part["text"])
             elif isinstance(part, str):
                 text_parts.append(part)
-        return ''.join(text_parts)
-    
+        return "".join(text_parts)
+
     # Fallback: convert to string
     return str(content)
 
+
+# ---------------------------------------------------------------------------
+# Non-streaming (kept for backward-compat / non-streaming callers)
+# ---------------------------------------------------------------------------
 
 def generate_brochure(cleaned_text: str) -> str:
     """Generate a Markdown brochure from cleaned website text.
@@ -131,3 +139,92 @@ def generate_brochure(cleaned_text: str) -> str:
     ]
     response = llm.invoke(messages)
     return _extract_text(response)
+
+
+# ---------------------------------------------------------------------------
+# Streaming variant – yields token chunks as they arrive from the LLM
+# ---------------------------------------------------------------------------
+
+def generate_brochure_stream(cleaned_text: str) -> Generator[str, None, None]:
+    """Yield brochure tokens as they arrive from the LLM.
+
+    For single-chunk content the entire generation streams.  For multi-chunk
+    (map-reduce) content the per-chunk summaries are generated non-streamed
+    (they are intermediate work) and only the **final reduce** call streams.
+    """
+    llm = _get_llm()
+    splitter = RecursiveCharacterTextSplitter(
+        chunk_size=_CHUNK_SIZE,
+        chunk_overlap=_CHUNK_OVERLAP,
+    )
+
+    chunks = splitter.split_text(cleaned_text)
+    logger.info("Split content into %d chunk(s) [streaming]", len(chunks))
+
+    if len(chunks) <= 1:
+        text_block = chunks[0] if chunks else cleaned_text
+        messages = [
+            ("system", _BROCHURE_SYSTEM_PROMPT),
+            ("human", _FINAL_BROCHURE_PROMPT.format(text=text_block)),
+        ]
+        yield from _stream_llm(llm, messages)
+        return
+
+    # Map phase (non-streamed – intermediate summaries)
+    summaries: list[str] = []
+    for i, chunk in enumerate(chunks):
+        logger.info("Summarising chunk %d/%d [streaming]", i + 1, len(chunks))
+        messages = [
+            ("system", "You are a helpful assistant that summarizes text accurately."),
+            ("human", _SUMMARY_PROMPT.format(text=chunk)),
+        ]
+        resp = llm.invoke(messages)
+        summaries.append(_extract_text(resp))
+
+    # Reduce phase (streamed)
+    combined_summary = "\n\n---\n\n".join(summaries)
+    messages = [
+        ("system", _BROCHURE_SYSTEM_PROMPT),
+        ("human", _FINAL_BROCHURE_PROMPT.format(text=combined_summary)),
+    ]
+    yield from _stream_llm(llm, messages)
+
+
+def _stream_llm(
+    llm: ChatGoogleGenerativeAI,
+    messages: list,
+    *,
+    max_retries: int = 3,
+    base_delay: float = 2.0,
+) -> Generator[str, None, None]:
+    """Call ``llm.stream()`` and yield text fragments.
+
+    Retries on transient server errors (5xx / UNAVAILABLE) with
+    exponential backoff.
+    """
+    import time
+
+    for attempt in range(1, max_retries + 1):
+        try:
+            for chunk in llm.stream(messages):
+                token = _extract_text(chunk)
+                if token:
+                    yield token
+            return  # success — exit retry loop
+        except Exception as exc:
+            # Detect transient / server errors worth retrying
+            exc_str = str(exc).lower()
+            is_transient = any(
+                kw in exc_str
+                for kw in ("503", "unavailable", "overloaded", "capacity", "high demand")
+            )
+            if is_transient and attempt < max_retries:
+                delay = base_delay * (2 ** (attempt - 1))
+                logger.warning(
+                    "LLM stream attempt %d/%d failed (transient): %s — retrying in %.1fs",
+                    attempt, max_retries, exc, delay,
+                )
+                time.sleep(delay)
+                continue
+            # Non-transient or final attempt — propagate
+            raise
