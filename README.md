@@ -31,6 +31,8 @@ Every project showcases a distinct AI engineering capability: web intelligence, 
 |---|---------|-------------|--------|------|
 | **1** | 🌐 **AI Website Brochure Generator** | Drop in any URL → get a polished marketing brochure. Scrapes up to 11 pages, cleans HTML, and streams a Gemini-powered brochure token-by-token. | ✅ Live | [docs →](docs/ai_website_brochure_generator.md) |
 
+**Lab / Sandbox**: See [lab/README.md](lab/README.md) for Jupyter-based experiments and scratch work before promoting changes into the app.
+
 ---
 
 ## 🏗️ Platform Architecture
@@ -143,6 +145,10 @@ Projects_1/
 │   ├── gradio_app.py                # Main Gradio Blocks interface
 │   └── pages/
 │       └── project1.py              # Async generator UI page
+│
+├── lab/
+│   ├── README.md                    # How to run lab notebooks
+│   └── brochure_playground.ipynb    # Sandbox to try scraper/cleaner/LLM
 │
 └── docs/
     └── ai_website_brochure_generator.md
