@@ -1,7 +1,16 @@
+# Web Framework & Server
 fastapi[standard]==0.133.0
 uvicorn[standard]==0.41.0
+
+# Data Validation & Settings
 pydantic==2.12.5
 pydantic-settings==2.13.1
+
+# Configuration
 python-dotenv==1.2.1
+
+# UI/Frontend
 gradio==6.6.0
+
+# HTTP Client
 httpx==0.28.1
