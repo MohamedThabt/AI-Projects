@@ -46,3 +46,13 @@ Copy `.env.example` to `.env` and edit values as needed.
 
 - `GET /` - Gradio web interface (main page)
 - `GET /api/health` - Health check endpoint
+- `POST /api/project1/generate` - Start AI brochure generation (returns task ID)
+- `GET /api/project1/status/{task_id}` - Poll brochure generation status
+
+## Projects
+
+This repository contains multiple AI/ML projects:
+
+| Project | Description | Documentation |
+|---------|-------------|---------------|
+| **AI Website Brochure Generator** | Scrapes websites, extracts content from multiple pages, and uses LLM (Gemini 3) to generate professional marketing brochures in Markdown format | [docs/ai_website_brochure_generator.md](docs/ai_website_brochure_generator.md) |

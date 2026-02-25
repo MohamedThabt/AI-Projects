@@ -29,7 +29,7 @@ def create_gradio_interface() -> gr.Blocks:
             gr.Markdown("## Home")
             with gr.Row():
                 health_btn = gr.Button("Check Health Status", variant="primary")
-                project1_btn = gr.Button("Go to Project 1 →", variant="secondary")
+                project1_btn = gr.Button("Website Brochure Generator →", variant="secondary")
             with gr.Row():
                 health_output = gr.Textbox(label="Health Result", lines=3)
 
