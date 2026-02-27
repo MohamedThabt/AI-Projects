@@ -1,6 +1,7 @@
 import gradio as gr
 from fastapi import FastAPI
 
+from config.exceptions import register_exception_handlers
 from config.logger import setup_logging
 from config.middleware import RequestLoggingMiddleware
 from config.settings import settings
@@ -16,6 +17,9 @@ def create_app() -> FastAPI:
 
     # ── Register middleware (runs on every request) ──
     app.add_middleware(RequestLoggingMiddleware)
+
+    # ── Global exception handlers ──
+    register_exception_handlers(app)
 
     app.include_router(api_router)
 

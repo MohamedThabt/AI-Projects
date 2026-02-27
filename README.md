@@ -87,13 +87,10 @@ APP_LOG_LEVEL=INFO                    # DEBUG | INFO | WARNING | ERROR | CRITICA
 ### 3 · Run
 
 ```powershell
-# Recommended — use the dev script (sets UVICORN_RELOAD_EXCLUDE automatically)
-.\dev.ps1
-
-# or via python __main__ (also pre-configured with reload_excludes)
+# via python __main__ (pre-configured with reload_excludes)
 python main.py
 
-# or manually via uvicorn
+# or via uvicorn directly
 uvicorn main:app --reload --reload-exclude "logs/*" --reload-exclude "*.log"
 ```
 
@@ -108,30 +105,10 @@ http://localhost:8000/docs # Interactive API docs (Swagger)
 
 ## 🧾 Logging
 
-- Global structured logging is configured at app startup in `config/logger.py`.
-- Request logging is centralized in middleware (`config/middleware.py`) and runs for every route.
-- Logs are written to both console and `logs/app.log` (with size-based rotation).
-- `X-Request-ID` is accepted from inbound requests (or generated if missing) and echoed back in the response header.
-
-Each request log entry includes:
-
-```json
-{
-    "timestamp": "",
-    "level": "",
-    "request_id": "",
-    "method": "",
-    "path": "",
-    "status_code": "",
-    "duration_ms": ""
-}
-```
-
-Request log levels by response status:
-
-- `2xx/3xx` → `INFO`
-- `4xx` → `WARNING`
-- `5xx` → `ERROR`
+- Structured JSON logs written to console and `logs/app.log` (size-based rotation).
+- Every request is logged by `config/middleware.py` with `request_id`, `method`, `path`, `status_code`, and `duration_ms`.
+- Unhandled exceptions are caught globally (`config/exceptions.py`) and logged with full tracebacks.
+- `X-Request-ID` is accepted from inbound requests (or auto-generated) and echoed in the response header.
 
 ---
 
@@ -160,7 +137,8 @@ Projects_1/
 ├── config/
 │   ├── settings.py                  # Pydantic settings (env vars)
 │   ├── logger.py                    # Structured logging bootstrap
-│   └── middleware.py                # Request logging middleware
+│   ├── middleware.py                # Request logging middleware
+│   └── exceptions.py                # Global exception handlers
 │
 ├── routes/
 │   ├── api.py                       # API router aggregation
