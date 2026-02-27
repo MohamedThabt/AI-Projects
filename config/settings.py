@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -5,6 +7,9 @@ class Settings(BaseSettings):
     app_name: str = "AI_Service"
     app_version: str = "1.0.0"
     app_env: str = "development"
+
+    # Logging
+    log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
 
     # Google Gemini / LangChain
     google_api_key: str = ""

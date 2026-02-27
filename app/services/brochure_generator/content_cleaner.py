@@ -10,7 +10,7 @@ import re
 from readability import Document as ReadabilityDocument
 from bs4 import BeautifulSoup
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("app.content_cleaner")
 
 
 def _extract_text_from_html(html: str) -> str:

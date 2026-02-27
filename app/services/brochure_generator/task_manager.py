@@ -10,7 +10,7 @@ import asyncio
 import logging
 from collections.abc import AsyncGenerator
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("app.task_manager")
 
 
 async def run_pipeline_stream(url: str) -> AsyncGenerator[str, None]:

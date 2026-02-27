@@ -15,7 +15,7 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 from config.settings import settings
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("app.llm_summarizer")
 
 _CHUNK_SIZE = 8_000
 _CHUNK_OVERLAP = 500

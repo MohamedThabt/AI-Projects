@@ -81,14 +81,20 @@ Edit `.env`:
 ```env
 APP_GOOGLE_API_KEY=AIzaSy...          # https://aistudio.google.com/apikey
 APP_GEMINI_MODEL=gemini-3-flash-preview
+APP_LOG_LEVEL=INFO                    # DEBUG | INFO | WARNING | ERROR | CRITICAL
 ```
 
 ### 3 · Run
 
 ```powershell
-fastapi dev main.py        # hot-reload dev server
-# or
-uvicorn main:app --reload
+# Recommended — use the dev script (sets UVICORN_RELOAD_EXCLUDE automatically)
+.\dev.ps1
+
+# or via python __main__ (also pre-configured with reload_excludes)
+python main.py
+
+# or manually via uvicorn
+uvicorn main:app --reload --reload-exclude "logs/*" --reload-exclude "*.log"
 ```
 
 ### 4 · Open
@@ -97,6 +103,35 @@ uvicorn main:app --reload
 http://localhost:8000      # Gradio UI
 http://localhost:8000/docs # Interactive API docs (Swagger)
 ```
+
+---
+
+## 🧾 Logging
+
+- Global structured logging is configured at app startup in `config/logger.py`.
+- Request logging is centralized in middleware (`config/middleware.py`) and runs for every route.
+- Logs are written to both console and `logs/app.log` (with size-based rotation).
+- `X-Request-ID` is accepted from inbound requests (or generated if missing) and echoed back in the response header.
+
+Each request log entry includes:
+
+```json
+{
+    "timestamp": "",
+    "level": "",
+    "request_id": "",
+    "method": "",
+    "path": "",
+    "status_code": "",
+    "duration_ms": ""
+}
+```
+
+Request log levels by response status:
+
+- `2xx/3xx` → `INFO`
+- `4xx` → `WARNING`
+- `5xx` → `ERROR`
 
 ---
 
@@ -123,7 +158,9 @@ Projects_1/
 ├── .env                             # Secrets (gitignored)
 │
 ├── config/
-│   └── settings.py                  # Pydantic settings (env vars)
+│   ├── settings.py                  # Pydantic settings (env vars)
+│   ├── logger.py                    # Structured logging bootstrap
+│   └── middleware.py                # Request logging middleware
 │
 ├── routes/
 │   ├── api.py                       # API router aggregation
@@ -149,6 +186,9 @@ Projects_1/
 ├── lab/
 │   ├── README.md                    # How to run lab notebooks
 │   └── brochure_playground.ipynb    # Sandbox to try scraper/cleaner/LLM
+│
+├── logs/
+│   └── app.log                      # Runtime logs (gitignored)
 │
 └── docs/
     └── ai_website_brochure_generator.md

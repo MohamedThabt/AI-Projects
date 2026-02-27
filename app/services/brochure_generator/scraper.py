@@ -12,7 +12,7 @@ from urllib.parse import urljoin, urlparse
 import tldextract
 from scrapling.fetchers import Fetcher
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("app.scraper")
 
 # Keywords that indicate a page worth including in the brochure
 _RELEVANT_KEYWORDS: set[str] = {
